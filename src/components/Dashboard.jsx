@@ -3,12 +3,14 @@ import {
   TrendingUp, 
   DollarSign, 
   AlertTriangle, 
-  FolderLock, 
   FileSpreadsheet, 
   ArrowUpRight, 
   ArrowDownLeft, 
   RotateCw,
-  PackageMinus
+  PackageMinus,
+  Warehouse,
+  Layers,
+  MapPin
 } from "lucide-react";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { 
@@ -34,7 +36,7 @@ ChartJS.register(
 );
 
 // Advanced Quad Ease-Out Numerical Pulse Counter Component
-function PulseCounter({ value, prefix = "", suffix = "", decimals = 0 }) {
+function PulseCounter({ value, prefix = "", suffix = "", decimals = 0, className = "" }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -69,13 +71,21 @@ function PulseCounter({ value, prefix = "", suffix = "", decimals = 0 }) {
   }, [value]);
 
   return (
-    <span className="font-extrabold text-2xl tracking-tight text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <span className={className || "text-3xl font-extrabold font-mono tracking-tight text-white drop-shadow-sm"}>
       {prefix}{count.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
     </span>
   );
 }
 
 export default function Dashboard({ products, transactions, onRefresh }) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshClick = () => {
+    setIsRefreshing(true);
+    if (onRefresh) onRefresh();
+    setTimeout(() => setIsRefreshing(false), 650);
+  };
+
   // 1. Calculate KPI Metrics
   const totalActiveSkus = products.length;
   
@@ -107,6 +117,34 @@ export default function Dashboard({ products, transactions, onRefresh }) {
     locationTotals["KSA-HUB"] += p.stock["KSA-HUB"] || 0;
   });
 
+  // Warehouse breakdown facility cards data
+  const warehouseFacilities = [
+    {
+      code: "LHR-FAC",
+      name: "Lahore Factory",
+      subtitle: "Main Production Plant",
+      stock: locationTotals["LHR-FAC"],
+      maxCapacity: 8000,
+      icon: Warehouse
+    },
+    {
+      code: "LHR-HQ",
+      name: "Lahore Gulberg HQ",
+      subtitle: "Head Office & Showroom",
+      stock: locationTotals["LHR-HQ"],
+      maxCapacity: 5000,
+      icon: Layers
+    },
+    {
+      code: "KSA-HUB",
+      name: "Dammam Port Hub",
+      subtitle: "KSA Distribution Center",
+      stock: locationTotals["KSA-HUB"],
+      maxCapacity: 3000,
+      icon: MapPin
+    }
+  ];
+
   // 2. Prepare Chart Data with Canvas Gradients
   const categories = [...new Set(products.map(p => p.category))];
   const stockPerCategory = categories.map(cat => {
@@ -121,25 +159,22 @@ export default function Dashboard({ products, transactions, onRefresh }) {
       {
         label: "Total Units In-Stock",
         data: stockPerCategory,
-        // High-fidelity glowing linear gradients
         backgroundColor: (context) => {
           const chart = context.chart;
           const { ctx, chartArea } = chart;
-          if (!chartArea) return null;
+          if (!chartArea) return "rgba(14, 165, 233, 0.7)";
           
           const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, "rgba(2, 132, 199, 0.2)"); // Translucent sky blue bottom
-          gradient.addColorStop(1, "#0284C7");               // Solid sky blue top
+          gradient.addColorStop(0, "rgba(14, 165, 233, 0.12)");
+          gradient.addColorStop(1, "rgba(14, 165, 233, 0.9)");
           return gradient;
         },
-        hoverBackgroundColor: "#0D9488",
+        hoverBackgroundColor: "#38BDF8",
         borderRadius: 8,
-        barThickness: 34,
+        barThickness: 32,
       }
     ]
   };
-
-  const isDarkTheme = document.documentElement.classList.contains("dark");
 
   const barChartOptions = {
     responsive: true,
@@ -147,13 +182,13 @@ export default function Dashboard({ products, transactions, onRefresh }) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: "rgba(15, 23, 42, 0.9)", // slate-900 with opacity
-        borderColor: "rgba(51, 65, 85, 0.5)",     // slate-700 border
+        backgroundColor: "rgba(17, 22, 34, 0.95)",
+        borderColor: "rgba(51, 65, 85, 0.8)",
         borderWidth: 1,
-        titleColor: "#0284C7",
+        titleColor: "#38BDF8",
         bodyColor: "#F8FAFC",
-        titleFont: { size: 12, weight: "bold" },
-        bodyFont: { size: 11 },
+        titleFont: { size: 12, weight: "bold", family: "monospace" },
+        bodyFont: { size: 11, family: "monospace" },
         padding: 10,
         borderRadius: 8,
         displayColors: false
@@ -162,14 +197,14 @@ export default function Dashboard({ products, transactions, onRefresh }) {
     scales: {
       x: { 
         grid: { display: false },
-        ticks: { color: isDarkTheme ? "#94A3B8" : "#64748B" }
+        ticks: { color: "#94A3B8", font: { size: 11, weight: "500" } }
       },
       y: { 
         grid: { 
           borderDash: [4, 4], 
-          color: isDarkTheme ? "#334155" : "#E2E8F0" 
+          color: "rgba(51, 65, 85, 0.3)" 
         },
-        ticks: { color: isDarkTheme ? "#94A3B8" : "#64748B" }
+        ticks: { color: "#94A3B8", font: { size: 11 } }
       }
     }
   };
@@ -185,9 +220,9 @@ export default function Dashboard({ products, transactions, onRefresh }) {
     datasets: [
       {
         data: valuationPerCategory,
-        backgroundColor: ["#0284C7", "#0D9488", "#6366F1", "#F59E0B", "#EC4899"],
-        borderWidth: isDarkTheme ? 3 : 2,
-        borderColor: isDarkTheme ? "#0F172A" : "#FFFFFF",
+        backgroundColor: ["#0EA5E9", "#10B981", "#6366F1", "#F59E0B", "#EC4899"],
+        borderWidth: 2,
+        borderColor: "#111622",
         hoverOffset: 6
       }
     ]
@@ -201,26 +236,28 @@ export default function Dashboard({ products, transactions, onRefresh }) {
         position: "bottom",
         labels: {
           boxWidth: 10,
+          boxHeight: 10,
+          borderRadius: 2,
           padding: 14,
           font: { size: 10, weight: "600" },
-          color: isDarkTheme ? "#94A3B8" : "#64748B"
+          color: "#94A3B8"
         }
       },
       tooltip: {
-        backgroundColor: "rgba(15, 23, 42, 0.9)", // slate-900 with opacity
-        borderColor: "rgba(51, 65, 85, 0.5)",     // slate-700 border
+        backgroundColor: "rgba(17, 22, 34, 0.95)",
+        borderColor: "rgba(51, 65, 85, 0.8)",
         borderWidth: 1,
-        titleColor: "#0284C7",
+        titleColor: "#38BDF8",
         bodyColor: "#F8FAFC",
-        titleFont: { size: 12, weight: "bold" },
-        bodyFont: { size: 11 },
+        titleFont: { size: 12, weight: "bold", family: "monospace" },
+        bodyFont: { size: 11, family: "monospace" },
         padding: 10,
         borderRadius: 8,
         displayColors: true,
         callbacks: {
           label: (context) => {
             const val = context.raw;
-            return ` Value: $${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+            return ` Valuation: $${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
           }
         }
       }
@@ -262,27 +299,35 @@ export default function Dashboard({ products, transactions, onRefresh }) {
       className="space-y-6 relative min-h-screen text-slate-100 transition-colors duration-200 z-10"
     >
       {/* Cyber Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.06] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.05] pointer-events-none z-0" />
 
-      {/* Page Header */}
-      <motion.div variants={cardVariants} className="flex items-center justify-between relative z-10">
+      {/* Top Header Bar */}
+      <motion.div variants={cardVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100 transition-colors duration-200">Operational Dashboard</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Real-time summary of Lonetex textile inventory and dispatches.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-white">Operational Dashboard</h1>
+          </div>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <p className="text-xs text-slate-400 font-medium">
+              Real-time summary of warehouse stock, valuations, and dispatches.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center" title="Live Connection Active">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-          </div>
           <button
-            onClick={onRefresh}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold rounded-lg shadow-sm hover:shadow transition-all duration-200 cursor-pointer"
+            onClick={handleRefreshClick}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-3.5 py-2 border border-slate-700/80 bg-[#111622]/80 hover:bg-slate-800/90 hover:border-cyan-500/40 text-slate-200 text-xs font-semibold rounded-xl shadow-lg shadow-black/20 hover:shadow-cyan-500/10 transition-all duration-200 cursor-pointer backdrop-blur-md group disabled:opacity-60"
           >
-            <RotateCw size={16} />
-            Refresh Stats
+            <RotateCw 
+              size={14} 
+              className={isRefreshing ? "animate-spin text-cyan-400" : "text-slate-400 group-hover:text-cyan-300 group-hover:rotate-180 transition-transform duration-500"} 
+            />
+            <span>Refresh Stats</span>
           </button>
         </div>
       </motion.div>
@@ -292,28 +337,31 @@ export default function Dashboard({ products, transactions, onRefresh }) {
         {/* Total Stock Value */}
         <motion.div 
           variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-cyan-500/5 hover:border-cyan-500/20"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-300 shadow-lg shadow-black/20 rounded-2xl p-5 relative overflow-hidden group flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400 max-w-[65%] leading-snug text-left">
-              Stock Value (Wholesale)
-            </div>
-            <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap self-start bg-emerald-500/10 text-emerald-450 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
-              <ArrowUpRight size={10} /> +4.8% MoM
-            </span>
-          </div>
+          <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_50%)] absolute inset-0" />
           
-          <div className="space-y-1 text-left">
-            <div className="block">
-              <PulseCounter value={totalStockValueWholesale} prefix="$" decimals={2} />
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="text-slate-400 font-medium text-xs tracking-wider uppercase">
+                Stock Value (Wholesale)
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-cyan-400 group-hover:scale-105 group-hover:text-cyan-300 transition-transform shrink-0">
+                <DollarSign size={18} />
+              </div>
             </div>
-            <span className="text-[10px] text-slate-400/80 dark:text-slate-500 block mt-1">Cost valuation: ${totalStockValueCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-          </div>
-          
-          <div className="mt-4 flex justify-end">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-sky-400 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(6,182,212,0.3)]">
-              <DollarSign size={20} />
+
+            <div className="space-y-1.5 text-left">
+              <div className="block">
+                <PulseCounter value={totalStockValueWholesale} prefix="$" decimals={2} />
+              </div>
+              <div className="text-xs text-slate-400">
+                Cost valuation: <span className="text-slate-300 font-medium">${totalStockValueCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="text-xs text-emerald-400 font-medium flex items-center gap-1 pt-0.5">
+                <ArrowUpRight size={13} /> +4.8% this month
+              </div>
             </div>
           </div>
         </motion.div>
@@ -321,38 +369,32 @@ export default function Dashboard({ products, transactions, onRefresh }) {
         {/* Low Stock Warnings */}
         <motion.div 
           variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-amber-500/5 hover:border-amber-500/20"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-300 shadow-lg shadow-black/20 rounded-2xl p-5 relative overflow-hidden group flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400 max-w-[65%] leading-snug text-left">
-              Low Stock Alerts
+          <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_50%)] absolute inset-0" />
+          
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="text-slate-400 font-medium text-xs tracking-wider uppercase">
+                Low Stock Alerts
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-cyan-400 group-hover:scale-105 group-hover:text-cyan-300 transition-transform shrink-0">
+                <AlertTriangle size={18} />
+              </div>
             </div>
-            <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap self-start border ${
-              lowStockAlertCount > 0 
-                ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-                : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-            }`}>
-              {lowStockAlertCount > 0 ? "Attention Needed" : "Optimal"}
-            </span>
-          </div>
 
-          <div className="space-y-1 text-left">
-            <div className="block">
-              <PulseCounter value={lowStockAlertCount} decimals={0} />
-            </div>
-            {lowStockAlertCount > 0 ? (
-              <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1 mt-1">
-                <AlertTriangle size={12} className="animate-pulse" /> Requires attention
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-emerald-500 block mt-1">All stock limits healthy</span>
-            )}
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(245,158,11,0.3)]">
-              <AlertTriangle size={20} />
+            <div className="space-y-1.5 text-left">
+              <div className="block">
+                <PulseCounter value={lowStockAlertCount} decimals={0} />
+              </div>
+              <div className="text-xs text-slate-400">
+                {lowStockAlertCount > 0 ? (
+                  <span className="text-amber-400 font-medium">{lowStockAlertCount} items below safety threshold</span>
+                ) : (
+                  "All items above minimum safety level"
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -360,38 +402,32 @@ export default function Dashboard({ products, transactions, onRefresh }) {
         {/* Out of Stock Items */}
         <motion.div 
           variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-rose-500/5 hover:border-rose-500/20"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-300 shadow-lg shadow-black/20 rounded-2xl p-5 relative overflow-hidden group flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400 max-w-[65%] leading-snug text-left">
-              Out of Stock Items
+          <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_50%)] absolute inset-0" />
+          
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="text-slate-400 font-medium text-xs tracking-wider uppercase">
+                Out of Stock Items
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-cyan-400 group-hover:scale-105 group-hover:text-cyan-300 transition-transform shrink-0">
+                <PackageMinus size={18} />
+              </div>
             </div>
-            <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap self-start border ${
-              outOfStockCount > 0 
-                ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" 
-                : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-            }`}>
-              {outOfStockCount > 0 ? "Understocked" : "All Available"}
-            </span>
-          </div>
 
-          <div className="space-y-1 text-left">
-            <div className="block">
-              <PulseCounter value={outOfStockCount} decimals={0} />
-            </div>
-            {outOfStockCount > 0 ? (
-              <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1 mt-1">
-                <PackageMinus size={12} /> SKUs unavailable
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold text-slate-400/80 dark:text-slate-500 block mt-1">Zero unavailable items</span>
-            )}
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-red-400 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(239,68,68,0.3)]">
-              <FolderLock size={20} />
+            <div className="space-y-1.5 text-left">
+              <div className="block">
+                <PulseCounter value={outOfStockCount} decimals={0} />
+              </div>
+              <div className="text-xs text-slate-400">
+                {outOfStockCount > 0 ? (
+                  <span className="text-rose-400 font-medium">{outOfStockCount} items out of stock</span>
+                ) : (
+                  "Zero items out of stock"
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -399,168 +435,192 @@ export default function Dashboard({ products, transactions, onRefresh }) {
         {/* Active SKUs */}
         <motion.div 
           variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between relative overflow-hidden transition-all duration-300 hover:shadow-emerald-500/5 hover:border-emerald-500/20"
+          whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-300 shadow-lg shadow-black/20 rounded-2xl p-5 relative overflow-hidden group flex flex-col justify-between"
         >
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-400 max-w-[65%] leading-snug text-left">
-              Active Catalog SKUs
+          <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_50%)] absolute inset-0" />
+          
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="text-slate-400 font-medium text-xs tracking-wider uppercase">
+                Active Catalog SKUs
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-cyan-400 group-hover:scale-105 group-hover:text-cyan-300 transition-transform shrink-0">
+                <FileSpreadsheet size={18} />
+              </div>
             </div>
-            <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap self-start bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Optimal Capacity
-            </span>
-          </div>
 
-          <div className="space-y-1 text-left">
-            <div className="block">
-              <PulseCounter value={totalActiveSkus} decimals={0} />
-            </div>
-            <span className="text-[10px] text-slate-400/80 dark:text-slate-500 block mt-1">5 core categories pre-seeded</span>
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-              <FileSpreadsheet size={20} />
+            <div className="space-y-1.5 text-left">
+              <div className="block">
+                <PulseCounter value={totalActiveSkus} decimals={0} />
+              </div>
+              <div className="text-xs text-slate-400">
+                {totalActiveSkus} Active Products across {categories.length} categories
+              </div>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Location Stock Breakdown Grid */}
+      {/* Warehouse Facilities Breakdown Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 relative z-10">
-        {/* Lahore Factory */}
-        <motion.div 
-          variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-lg"
-        >
-          <div className="absolute top-3 right-3 flex items-center gap-1">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shadow-inner">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <div className="text-left">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Lahore Factory Stock</span>
-            <span className="text-lg font-black text-slate-700 dark:text-slate-100">{locationTotals["LHR-FAC"].toLocaleString()} Pcs</span>
-          </div>
-        </motion.div>
+        {warehouseFacilities.map((wh) => {
+          const IconComponent = wh.icon;
+          const capacityPercent = Math.min(100, Math.max(0, Math.round((wh.stock / wh.maxCapacity) * 100)));
 
-        {/* Lahore Gulberg HQ */}
-        <motion.div 
-          variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-lg"
-        >
-          <div className="absolute top-3 right-3 flex items-center gap-1">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shadow-inner">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <div className="text-left">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Lahore Gulberg HQ Stock</span>
-            <span className="text-lg font-black text-slate-700 dark:text-slate-100">{locationTotals["LHR-HQ"].toLocaleString()} Pcs</span>
-          </div>
-        </motion.div>
+          return (
+            <motion.div
+              key={wh.code}
+              variants={cardVariants}
+              whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-300 shadow-lg shadow-black/20 rounded-2xl p-5 relative overflow-hidden group cursor-default flex flex-col justify-between"
+            >
+              <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.08),transparent_50%)] absolute inset-0" />
 
-        {/* Dammam Port Hub (KSA) */}
-        <motion.div 
-          variants={cardVariants}
-          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="bg-white/70 dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden shadow-lg"
-        >
-          <div className="absolute top-3 right-3 flex items-center gap-1">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shadow-inner">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h2a2.5 2.5 0 002.5-2.5V10a2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="text-left">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Dammam Port Hub (KSA)</span>
-            <span className="text-lg font-black text-slate-700 dark:text-slate-100">{locationTotals["KSA-HUB"].toLocaleString()} Pcs</span>
-          </div>
-        </motion.div>
+              <div className="relative z-10">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/50 text-cyan-400 group-hover:scale-105 group-hover:text-cyan-300 transition-transform shrink-0">
+                      <IconComponent size={18} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white tracking-wide">{wh.name}</span>
+                        <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700/80 text-cyan-400">
+                          {wh.code}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-medium block mt-0.5">{wh.subtitle}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="my-3 text-left">
+                  <PulseCounter 
+                    value={wh.stock} 
+                    suffix=" Pcs" 
+                    className="text-2xl lg:text-3xl font-extrabold font-mono tracking-tight text-white drop-shadow-sm" 
+                  />
+                  <div className="text-xs text-slate-400 mt-1 font-medium">Healthy stock level</div>
+                </div>
+              </div>
+
+              <div className="relative z-10 pt-3 border-t border-slate-800/60 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-slate-400">Capacity Utilization</span>
+                  <span className="text-cyan-400 font-semibold">{capacityPercent}%</span>
+                </div>
+                <div className="w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-sky-400 transition-all duration-700" 
+                    style={{ width: `${capacityPercent}%` }} 
+                  />
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Charts Grid */}
       <motion.div variants={cardVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
         {/* Category Stock Bar Chart */}
-        <div className="bg-white dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg lg:col-span-2 flex flex-col h-[380px]">
-          <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 text-left">Stock Quantities by Product Line</h2>
-          <div className="flex-1 min-h-0 relative">
+        <div className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-lg shadow-black/20 lg:col-span-2 flex flex-col h-[380px] relative overflow-hidden group">
+          <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.05),transparent_50%)] absolute inset-0" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div>
+              <h2 className="text-sm font-bold tracking-wider uppercase text-slate-200">Stock Quantities by Product Line</h2>
+              <p className="text-[11px] text-slate-400">Total units allocated across warehouses</p>
+            </div>
+            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+              Units
+            </span>
+          </div>
+          <div className="flex-1 min-h-0 relative z-10">
             <Bar data={barChartData} options={barChartOptions} />
           </div>
         </div>
 
         {/* Category Valuation Doughnut */}
-        <div className="bg-white dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg flex flex-col h-[380px]">
-          <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 text-left">Valuation Share by Category</h2>
-          <div className="flex-1 min-h-0 relative">
+        <div className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-lg shadow-black/20 flex flex-col h-[380px] relative overflow-hidden group">
+          <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.05),transparent_50%)] absolute inset-0" />
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div>
+              <h2 className="text-sm font-bold tracking-wider uppercase text-slate-200">Valuation Share by Category</h2>
+              <p className="text-[11px] text-slate-400">Wholesale portfolio weight</p>
+            </div>
+            <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+              USD ($)
+            </span>
+          </div>
+          <div className="flex-1 min-h-0 relative z-10">
             <Doughnut data={doughnutChartData} options={doughnutChartOptions} />
           </div>
         </div>
       </motion.div>
 
       {/* Recent Activity Log */}
-      <motion.div variants={cardVariants} className="bg-white dark:bg-[#111827]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-lg relative z-10">
-        <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-4 text-left">Recent Stock Movement Activity Log</h2>
-        <div className="overflow-x-auto">
+      <motion.div variants={cardVariants} className="bg-[#111622]/70 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-5 shadow-lg shadow-black/20 relative overflow-hidden group z-10">
+        <div className="group-hover:opacity-100 opacity-0 pointer-events-none transition-opacity duration-500 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.04),transparent_50%)] absolute inset-0" />
+        
+        <div className="flex items-center justify-between mb-4 relative z-10">
+          <div>
+            <h2 className="text-sm font-bold tracking-wider uppercase text-slate-200">Recent Stock Movement Activity Log</h2>
+            <p className="text-[11px] text-slate-400">Audited inventory transaction ledger</p>
+          </div>
+          <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
+            Latest 5 Operations
+          </span>
+        </div>
+
+        <div className="overflow-x-auto relative z-10">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">
-                <th className="py-3 px-4">Time</th>
-                <th className="py-3 px-4">Type</th>
+              <tr className="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase tracking-wider font-semibold">
+                <th className="py-3 px-4">Timestamp</th>
+                <th className="py-3 px-4">Action Type</th>
                 <th className="py-3 px-4">SKU / Item</th>
-                <th className="py-3 px-4">Location</th>
+                <th className="py-3 px-4">Facility</th>
                 <th className="py-3 px-4 text-right">Quantity</th>
                 <th className="py-3 px-4">Remarks</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-55 dark:divide-slate-900/60 text-slate-655 dark:text-slate-300 font-medium">
+            <tbody className="divide-y divide-slate-800/60 text-slate-300 font-medium">
               {transactions.slice(0, 5).map((tx) => {
                 const isStockIn = tx.type === "Stock In";
                 const isStockOut = tx.type === "Stock Out";
                 return (
-                  <tr key={tx.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors">
-                    <td className="py-3 px-4 text-slate-400 dark:text-slate-500">{new Date(tx.timestamp).toLocaleString()}</td>
+                  <tr key={tx.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">
+                      {new Date(tx.timestamp).toLocaleString()}
+                    </td>
                     <td className="py-3 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${
                         isStockIn 
-                          ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
                           : isStockOut 
-                            ? "bg-sky-500/10 text-[#0284C7] border border-sky-500/20" 
-                            : "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                            ? "bg-sky-500/10 text-sky-400 border border-sky-500/20" 
+                            : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                       }`}>
                         {isStockIn ? <ArrowDownLeft size={10} /> : <ArrowUpRight size={10} />}
                         {tx.type}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="font-bold text-slate-800 dark:text-slate-200">{tx.productName}</div>
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{tx.sku}</div>
+                      <div className="font-bold text-white">{tx.productName}</div>
+                      <div className="text-[10px] text-cyan-400/90 font-mono">{tx.sku}</div>
                     </td>
-                    <td className="py-3 px-4 font-semibold">{tx.warehouseCode}</td>
-                    <td className={`py-3 px-4 text-right font-bold ${isStockIn ? "text-emerald-500" : isStockOut ? "text-rose-500" : "text-amber-500"}`}>
+                    <td className="py-3 px-4 font-mono text-slate-300">
+                      <span className="px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 text-[11px]">
+                        {tx.warehouseCode}
+                      </span>
+                    </td>
+                    <td className={`py-3 px-4 text-right font-mono font-bold ${
+                      isStockIn ? "text-emerald-400" : isStockOut ? "text-rose-400" : "text-amber-400"
+                    }`}>
                       {tx.qty > 0 ? `+${tx.qty}` : tx.qty}
                     </td>
-                    <td className="py-3 px-4 text-slate-400 dark:text-slate-500 italic max-w-[200px] truncate" title={tx.remarks}>
+                    <td className="py-3 px-4 text-slate-400 text-[11px] max-w-[200px] truncate" title={tx.remarks}>
                       {tx.remarks}
                     </td>
                   </tr>
@@ -576,11 +636,11 @@ export default function Dashboard({ products, transactions, onRefresh }) {
         initial={{ opacity: 0, x: -100 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.8, type: "spring", stiffness: 80 }}
-        className="fixed bottom-6 left-6 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xl shadow-black/20 hover:border-[#0284C7]/50 hover:scale-102 transition-all duration-300 select-none cursor-pointer"
+        className="fixed bottom-6 left-6 z-40 bg-[#111622]/90 backdrop-blur-md border border-slate-800/90 px-4 py-2.5 rounded-full flex items-center gap-2.5 text-xs font-mono font-semibold text-slate-200 shadow-xl shadow-black/40 hover:border-cyan-500/40 hover:scale-[1.02] transition-all duration-300 select-none cursor-pointer"
       >
         <span className="flex h-2.5 w-2.5 relative">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0284C7] opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#0284C7]"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
         </span>
         <span>🚚 Dispatch LHR-D-334: Microfiber Mops - 50 Pcs &gt;</span>
       </motion.div>
